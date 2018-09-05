@@ -36,7 +36,6 @@ status() {
 		remote=$(git config branch.$branch.remote)
 		if [ -n "$remote" ]; then
 			upstream=$(basename $(git config branch.$branch.merge))
-#			git diff --stat "$branch" "$remote/$upstream"
 			behind=$(git log "$branch".."$remote/$upstream"  --oneline | wc -l)
 			ahead=$(git log "$remote/$upstream".."$branch"  --oneline | wc -l)
 			[ $behind == 0 ] || echo -e "\t\e[1;34m$branch\e[0m is \e[1;35m$behind\e[0m commit(s) \e[1;33mBEHIND\e[0m \e[1;34m$remote/$upstream\e[0m"
@@ -44,8 +43,6 @@ status() {
 			#git diff --quiet "$branch" "$remote/$upstream" || echo -e "\tchanges"
 		fi
 	done
-		
-	#check_dirty "$1" || echo Dirty
 }
 
 status_all() {
