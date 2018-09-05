@@ -1,0 +1,58 @@
+#!/bin/bash -u
+
+
+check_dirty() {
+	(cd $1; git diff-index --quiet --cached HEAD --)
+	(cd $1; git diff --shortstat)
+	#[ "$(cd $1; git diff --shortstat | wc -l)" -gt 0 ]
+}
+
+status() {
+	echo $1
+	if git log -n1 >/dev/null 2>/dev/null; then
+		git diff --quiet || echo -e "\tworkdir is \e[1;33mDIRTY\e[0m"
+		git diff-index --quiet --cached HEAD -- || echo -e "\tchanges are \e[1;33mCACHED\e[\0m"
+	else
+		echo -e "\t\e[1;34mHEAD\e[0m has no commits"
+	fi
+	untracked=$(git ls-files --exclude-standard --others | wc -l)
+	[ $untracked == 0 ] || echo -e "\t\e[1;35m$untracked\e[0m file(s) are \e[1;33mUNTRACKED\e[0m"
+	remotes=()
+	for branch in $(cd .git/refs/heads; ls); do
+		remote=$(git config branch.$branch.remote)
+		if [ -z "$remote" ]; then
+			echo -e "\t\e[1;34m${branch}\e[0m has no \e[1;33mUPSTREAM\e[0m"
+		else
+			remotes+=($remote)
+		fi
+	done
+
+
+	for remote in $(echo ${remotes[*]} | xargs -n1 | sort -u); do
+		git fetch --quiet $remote
+	done
+
+	for branch in $(cd .git/refs/heads; ls); do
+		remote=$(git config branch.$branch.remote)
+		if [ -n "$remote" ]; then
+			upstream=$(basename $(git config branch.$branch.merge))
+#			git diff --stat "$branch" "$remote/$upstream"
+			behind=$(git log "$branch".."$remote/$upstream"  --oneline | wc -l)
+			ahead=$(git log "$remote/$upstream".."$branch"  --oneline | wc -l)
+			[ $behind == 0 ] || echo -e "\t\e[1;34m$branch\e[0m is \e[1;35m$behind\e[0m commit(s) \e[1;33mBEHIND\e[0m \e[1;34m$remote/$upstream\e[0m"
+			[ $ahead == 0 ] || echo -e "\t\e[1;34m$branch\e[0m is \e[1;35m$ahead\e[0m commit(s) \e[1;33mAHEAD\e[0m of \e[1;34m$remote/$upstream\e[0m"
+			#git diff --quiet "$branch" "$remote/$upstream" || echo -e "\tchanges"
+		fi
+	done
+		
+	#check_dirty "$1" || echo Dirty
+}
+
+status_all() {
+	while read path; do
+		workdir=$(dirname "$path")
+		(cd $workdir;status "$workdir")
+	done
+}
+
+find -type d -name .git | status_all
