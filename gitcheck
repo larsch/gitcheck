@@ -1,12 +1,5 @@
 #!/bin/bash -u
 
-
-check_dirty() {
-	(cd $1; git diff-index --quiet --cached HEAD --)
-	(cd $1; git diff --shortstat)
-	#[ "$(cd $1; git diff --shortstat | wc -l)" -gt 0 ]
-}
-
 status() {
 	echo $1
 	if git log -n1 >/dev/null 2>/dev/null; then
@@ -40,7 +33,6 @@ status() {
 			ahead=$(git log "$remote/$upstream".."$branch"  --oneline | wc -l)
 			[ $behind == 0 ] || echo -e "\t\e[1;34m$branch\e[0m is \e[1;35m$behind\e[0m commit(s) \e[1;33mBEHIND\e[0m \e[1;34m$remote/$upstream\e[0m"
 			[ $ahead == 0 ] || echo -e "\t\e[1;34m$branch\e[0m is \e[1;35m$ahead\e[0m commit(s) \e[1;33mAHEAD\e[0m of \e[1;34m$remote/$upstream\e[0m"
-			#git diff --quiet "$branch" "$remote/$upstream" || echo -e "\tchanges"
 		fi
 	done
 }
